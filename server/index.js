@@ -4,17 +4,47 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import KiteConnect from 'kiteconnect';
 import opn from 'opn';
+import dotenv from 'dotenv';
+import authRoutes from './routes/AuthRoutes.js';
+import cookieParser from 'cookie-parser';
+
+
+const app = express();
+
+app.use(cors({
+    origin: ['http://localhost:3000'],
+    method: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+    credentials: true,
+}));
+
+const CONNECTION_URL = 'mongodb+srv://AyushPandey:Ayush%40303@cluster0.jny52.mongodb.net/kiteDatabase?retryWrites=true&w=majority';
+
+const PORT = process.env.PORT || 5005;
+
+mongoose.connect(CONNECTION_URL, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log(`Server Running on Port: http://localhost:${PORT} and database is connected`))
+    .catch((error) => console.log(`${error} did not connect`));
+
+mongoose.set('useFindAndModify', false);
+mongoose.set('useCreateIndex', true);
+
+app.use(express.json());
+app.use(cookieParser());
+app.use('/', authRoutes);
+app.listen(PORT, () => console.log(`Server Running on Port: http://localhost:${PORT}`));
 
 var Kiteconnect = KiteConnect.KiteConnect;
 var jsonencoder = bodyParser.json();
+
+dotenv.config();
 
 var kc = new Kiteconnect({
     api_key: "bmy0rym28xrmp6d2"
 });
 
-// https://kite.zerodha.com/connect/login?v=3&api_key=bmy0rym28xrmp6d2
+//https://kite.zerodha.com/connect/login?v=3&api_key=bmy0rym28xrmp6d2
 
-kc.access_token = "e8gl7Bsdi9otyhWlPdNVZz0vsX5fNUu3";
+// kc.access_token = "e8gl7Bsdi9otyhWlPdNVZz0vsX5fNUu3";
 
 var KiteTicker = KiteConnect.KiteTicker;
 var ticker = new KiteTicker({
@@ -36,11 +66,9 @@ function subscribe() {
     ticker.setMode(ticker.modeFull, items);
 }
 
-const app = express();
-
-app.use(bodyParser.json({ limit: "30mb", extended: true }));
+app.use(bodyParser.json({ limit: "30mb"}));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
-app.use(cors());
+
 
 
 app.get('/login', (req, res) => {
@@ -68,6 +96,7 @@ app.post('/user', (req, res) => {
     }
 });
 app.get('/ltp', (req, res) => {
+    console.log(kc);
     kc.getLTP(["NSE:INFY", "NSE:PAYTM", "NSE:NYKAA", "NSE:ZOMATO", "NSE:YESBANK"])
         .then(function (response) {
             res.send(response);
@@ -106,14 +135,14 @@ app.post('/bucketOrder', (req, res) => {
     ordersParams.map((orderParams) => {
         setTimeout(() => {
             kc.placeOrder(kc.VARIETY_REGULAR, orderParams)
-            .then(function (response) {
-                console.log(response);
-                res.send(response);
-            }).catch(function (err) {
-                console.log(err);
-                res.send(err);
-            });
-}, 2000);
+                .then(function (response) {
+                    console.log(response);
+                    res.send(response);
+                }).catch(function (err) {
+                    console.log(err);
+                    res.send(err);
+                });
+        }, 2000);
     })
 });
 
@@ -146,7 +175,7 @@ app.get('/instruments', (rew, res) => {
         })
 })
 
-app.get('/margin', (req,res) => {
+app.get('/margin', (req, res) => {
     kc.getMargins("equity")
         .then((response) => {
             console.log(response);
@@ -157,14 +186,25 @@ app.get('/margin', (req,res) => {
         })
 })
 
-// const CONNECTION_URL = 'mongodb+srv://AyushPandey:Ayush%40303@cluster0.jny52.mongodb.net/myDatabase[LTP]?retryWrites=true&w=majority';
-
-const PORT = process.env.PORT || 5005;
-
-// mongoose.connect(CONNECTION_URL, { useNewUrlParser: true, useUnifiedTopology: true })
-//     .then(() => app.listen(PORT, () => console.log(`Server Running on Port: http://localhost:${PORT}`)))
-//     .catch((error) => console.log(`${error} did not connect`));
-
-// mongoose.set('useFindAndModify', false);
-
-app.listen(PORT, () => console.log(`Server Running on Port: http://localhost:${PORT}`));
+app.post('/gtt', (req, res) => {
+    console.log('consoling request body', req.body);
+    const gttOrder = req.body;
+    const triggerType = gttOrder.trigger_type == 'single' ? kc.GTT_TYPE_SINGLE : kc.GTT_TYPE_OCO; 
+    console.log('gtt order placement', gttOrder);
+    const params = {
+        trigger_type: triggerType,
+        tradingsymbol: gttOrder.tradingsymbol,
+        exchange: gttOrder.exchange,
+        last_price: gttOrder.last_price,
+        trigger_values: gttOrder.trigger_price,
+        orders: gttOrder.orders,
+    }
+    kc.placeGTT(params)
+        .then((response) => {
+            console.log(response);
+            res.send(response);
+        }).catch((err) => {
+            console.log(err);
+            res.send(err);
+        })
+})

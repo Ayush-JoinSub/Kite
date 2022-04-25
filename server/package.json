@@ -11,11 +11,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcrypt": "^5.0.1",
     "body-parser": "^1.20.0",
+    "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
     "express": "^4.17.3",
+    "jsonwebtoken": "^8.5.1",
     "kiteconnect": "^4.0.0",
-    "mongoose": "^5.0.29",
+    "mongodb": "^4.5.0",
+    "mongoose": "^5.2.8",
     "nodemon": "^2.0.15",
     "opn": "^6.0.0"
   }

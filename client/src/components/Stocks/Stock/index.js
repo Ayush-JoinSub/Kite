@@ -1,11 +1,41 @@
-import React from 'react';
-import { TextField, Container, Typography, Paper, AppBar, Card, Grid } from '@material-ui/core';
+import React, { useState } from 'react';
+import { TextField, Container, Typography, Paper, AppBar, Card, Grid, Modal } from '@material-ui/core';
 import { Link } from 'react-router';
-const Stock = ({ symbol, lastPrice, exchange }) => {
+import { useNavigate } from 'react-router-dom';
+import Form from '../../Form';
+const Stock = ({ 
+    symbol, 
+    lastPrice, 
+    exchange, 
+    toggleModalHandler, 
+    toggleModal,
+    setStock,
+ }) => {
+
+    const navigate = useNavigate();
+
+
+    const handleSelect = () => {
+        console.log(symbol, lastPrice, exchange);
+        setStock({
+            tradingSymbol: symbol,
+            exchange: exchange,
+            lastPrice: lastPrice,
+            transaction_type: 'BUY',
+        });
+        toggleModalHandler();
+        // navigate('/form', {
+        //     state: {
+        //         tradingsymbol: symbol, exchange: exchange, lastPrice: lastPrice
+        //     }
+        // });
+    };
+
     return (
-            <Card style={{margin: 10, padding: 15}} onClick={() => console.log(`clicked on ${symbol} card`)}>  
-            <div style={{ display: "flex", flexDirection: "row" }}>
-                    <div style={{dispaly: "flex", flex: 1}}>
+        <>
+            <Card style={{ margin: 10, padding: 15 }} onClick={handleSelect}>
+                <div style={{ display: "flex", flexDirection: "row" }}>
+                    <div style={{ dispaly: "flex", flex: 1 }}>
                         <Typography variant="h5" style={{ marginTop: '5px' }}>
                             {symbol}
                         </Typography>
@@ -18,6 +48,8 @@ const Stock = ({ symbol, lastPrice, exchange }) => {
                     </Typography>
                 </div>
             </Card>
+        </>
+        
     );
 };
 
