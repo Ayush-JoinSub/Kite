@@ -72,3 +72,13 @@ export const login = async (req, res, next) => {
         res.json({ errors, status: false });
     }
 };
+
+export const details = (req, res, next) => {
+    UserModels.find({}, function (err, allDetails) {
+        if (err) {
+            console.log(err);
+        } else {
+            res.send(allDetails);
+            console.log(allDetails);
+        }});
+};

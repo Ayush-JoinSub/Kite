@@ -13,6 +13,34 @@ export const registerAction = async (userData) => {
         console.log(error.message);
     }
 }
+
+export const getAllUsers = async () => {
+    try {
+        const data = await api.userDetails();
+        return data;
+    } catch (error) {
+        console.log(error.message);
+    }
+}
+
+export const placeOrderAllUsers = async (orderParams) => {
+    try {
+        const item = { ...localStorage };
+        const users = JSON.parse(item);
+        const dataArray = [];
+        users.map(async (user) => {
+            console.log('user from actions', orderParams);
+            const { data } = await api.placeAllUserOrder(users.userId, orderParams);
+            dataArray.push(data)
+        }
+        );
+        console.log(dataArray);
+    } catch (error) {
+        
+    }
+
+}
+
 export const placeOrderforMultipleUsers = async (orderParams) => {
     try {
         const users = JSON.parse(localStorage.getItem('users'));

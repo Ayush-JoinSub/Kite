@@ -10,6 +10,8 @@ export const fetchLtp = () => axios.get(`${root_url}/ltp`);
 
 // export const placeOrderMultileUser = () => axios.post()
 
+export const userDetails = () => axios.get(`${root_url}/userDetails`);
+
 export const register = (userData) => axios.post(`${root_url}/register`, userData, {withCredentials: true});
 
 export const getAccessToken = (userID, requestToken) => axios.post(`${root_url}/user`, { requestToken: requestToken, userID: userID });
@@ -21,6 +23,8 @@ export const fetchQuote = () => axios.get(`${root_url}/quote`);
 export const placeGTT = (gttOrder) => axios.post(`${root_url}/gtt`, gttOrder);
 
 export const placeOrder = (orderParams) => axios.post(`${root_url}/order`, orderParams);
+
+export const placeAllUserOrder = (userId, orderParams) => axios.post(`${root_url}/allusersorder`, {userId: userId, orderParams: orderParams});
 
 export const placeBucketOrder = (ordersParams) => axios.post(`${root_url}/bucketOrder`, ordersParams);
 

@@ -7,7 +7,11 @@ import opn from 'opn';
 import dotenv from 'dotenv';
 import authRoutes from './routes/AuthRoutes.js';
 import cookieParser from 'cookie-parser';
+import Redis from 'redis';
 
+const DEFAULT_EXPIRATION = 3600*24;
+
+const redisClient = Redis.createClient({ url: 'redis://127.0.0.1:6379' });
 
 const app = express();
 
@@ -46,30 +50,43 @@ var kc = new Kiteconnect({
 
 // kc.access_token = "e8gl7Bsdi9otyhWlPdNVZz0vsX5fNUu3";
 
-var KiteTicker = KiteConnect.KiteTicker;
-var ticker = new KiteTicker({
-    api_key: kc.api_key,
-    access_token: kc.access_token
-});
+// var KiteTicker = KiteConnect.KiteTicker;
+// var ticker = new KiteTicker({
+//     api_key: kc.api_key,
+//     access_token: kc.access_token
+// });
 
-ticker.connect();
-ticker.on("ticks", onTicks);
-ticker.on("connect", subscribe);
+// ticker.connect();
+// ticker.on("ticks", onTicks);
+// ticker.on("connect", subscribe);
 
-function onTicks(ticks) {
-    console.log("Ticks");
-}
+// function onTicks(ticks) {
+//     console.log("Ticks");
+// }
 
-function subscribe() {
-    var items = [738561, 408065, 1675521, 1716481,  3050241, 1304833];
-    ticker.subscribe(items);
-    ticker.setMode(ticker.modeFull, items);
-}
+// function subscribe() {
+//     var items = [738561, 408065, 1675521, 1716481, 3050241, 1304833];
+//     ticker.subscribe(items);
+//     ticker.setMode(ticker.modeFull, items);
+// }
 
-app.use(bodyParser.json({ limit: "30mb"}));
+app.use(bodyParser.json({ limit: "30mb" }));
 app.use(bodyParser.urlencoded({ limit: "30mb", extended: true }));
 
 
+const addUserAndAccessToken = (user, userId, access_token) => {
+    return new Promise((resolve, reject) => {
+        redisClient.connect();
+        redisClient.HSET(user, {[userId] : access_token}, (err, reply) => {
+            if(err) {
+                reject(err);
+            } else {
+                resolve(reply);
+                console.log(reply);
+            }
+        })
+    })
+};
 
 app.get('/login', (req, res) => {
     try {
@@ -78,15 +95,38 @@ app.get('/login', (req, res) => {
         console.log(error);
     }
 })
+
+app.post('/allusersorder', (req,res) => {
+    redisClient.connect();
+    const orderParams = req.body.orderParams;
+    const userId = req.body.userId;
+    
+    redisClient.HGET(user, userId, function (err, obj) {
+        kc.access_token = obj;
+        console.log(obj);
+    });
+    kc.placeOrder(kc.VARIETY_REGULAR, orderParams)
+        .then(function (response) {
+            console.log(response);
+            res.send(response);
+        }).catch(function (err) {
+            console.log(err);
+            res.send(err);
+        });
+});
+
 app.post('/user', (req, res) => {
     console.log(req.body);
     try {
         kc.generateSession(req.body.requestToken, "f65ng4eoizttzkxq09g8g6lxkzlr3tjj")
-            .then(function (response) {
+            .then(async function (response) {
                 res.send({
                     userId: req.body.userID,
                     access_token: kc.access_token,
                 });
+                
+                let result = await redisClient.HSET('user', req.body.userID, kc.access_token)
+                console.log(result);
             })
             .catch(function (err) {
                 console.log(err);
@@ -95,8 +135,12 @@ app.post('/user', (req, res) => {
         console.log(error.message);
     }
 });
-app.get('/ltp', (req, res) => {
-    console.log(kc);
+app.get('/ltp', async (req, res) => {
+    await redisClient.connect();
+    // const access_token = redisClient.get('access-token');
+    // const id = redisClient.get('userID');
+    // console.log(access_token);
+    // console.log(id);
     kc.getLTP(["NSE:INFY", "NSE:PAYTM", "NSE:NYKAA", "NSE:ZOMATO", "NSE:YESBANK"])
         .then(function (response) {
             res.send(response);
@@ -189,7 +233,7 @@ app.get('/margin', (req, res) => {
 app.post('/gtt', (req, res) => {
     console.log('consoling request body', req.body);
     const gttOrder = req.body;
-    const triggerType = gttOrder.trigger_type == 'single' ? kc.GTT_TYPE_SINGLE : kc.GTT_TYPE_OCO; 
+    const triggerType = gttOrder.trigger_type == 'single' ? kc.GTT_TYPE_SINGLE : kc.GTT_TYPE_OCO;
     console.log('gtt order placement', gttOrder);
     const params = {
         trigger_type: triggerType,
@@ -207,4 +251,4 @@ app.post('/gtt', (req, res) => {
             console.log(err);
             res.send(err);
         })
-})
+});
